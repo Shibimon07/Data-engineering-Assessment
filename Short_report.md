@@ -1,0 +1,11 @@
+what you built :-
+
+I built a small data engineering project that combines a REST API and an ETL pipeline using Python. The API is developed with Flask and connected to a PostgreSQL database through SQLAlchemy. It supports all CRUD operations for managing user details along with their employment and bank information. Each user record can include multiple employment or bank records, and all these are stored in related database tables. The ETL script connects to the same database, reads the combined data by joining all three tables, and then groups users by company name, bank name, and pincode. It produces CSV reports for each grouping and saves them in a timestamped folder. Postman is used to test all the API endpoints and verify that the data flows correctly between the API, the database, and the ETL process.
+
+Assumptions:-
+
+While building this project, I assumed that the database would always be available locally and properly configured before running the API or ETL script. I also assumed that every user would have valid information for employment and banking, and that the input data format sent through the API would follow the expected JSON structure. The project was designed to run in a local development setup, so it assumes that all dependencies like Flask, SQLAlchemy, Psycopg2, and Pandas are already installed. I also assumed that users would not enter duplicate emails or invalid values like missing pincode or bank names, and that the database constraints would handle such cases smoothly.
+
+Future improvement:-
+
+In the future, this project could be improved in several ways. First, I could add authentication and authorization features to make the API secure, ensuring that only authorized users can perform updates or deletions. The ETL process could be automated using tools like Apache Airflow or a simple cron job, making the data updates run on a schedule instead of manually. I could also containerize the whole project using Docker for easier deployment and sharing. Better logging, input validation, and exception handling could make the system more reliable. Finally, integrating a simple frontend dashboard to visualize the CSV reports or query results would make the project more user-friendly and complete.
