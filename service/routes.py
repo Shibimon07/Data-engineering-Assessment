@@ -7,6 +7,12 @@ from service.model import User, EmploymentInfo, UserBankInfo
 def create_user():
     data = request.json
 
+    existing_user = User.query.filter_by(email=data["email"]).first()
+    if existing_user:
+        return jsonify({
+            "error": f"User's email '{data['email']}' already exists"
+        }), 400
+
     new_user = User(
         first_name = data["first_name"],
         last_name = data["last_name"],
@@ -99,38 +105,60 @@ def get_user(user_id):
 # updating user info
 @app.route("/users/<int:user_id>", methods=["PUT"])
 def update_user(user_id):
+    data = request.json
     user = User.query.get(user_id)
     if not user:
-        return jsonify({"error": "user not found"}), 404
+        return jsonify({"error": "User not found"}), 404
 
-    data = request.json
+    updated_fields = []  
 
-    user.first_name = data.get("first_name", user.first_name)
-    user.last_name = data.get("last_name", user.last_name)
-    user.phone = data.get("phone", user.phone)
-    user.city = data.get("city", user.city)
-    user.state = data.get("state", user.state)
-    user.pincode = data.get("pincode", user.pincode)
-
+    user_fields = ["first_name", "last_name", "email", "phone", "address_line1", "city", "state", "pincode"]
+    for field in user_fields:
+        if field in data:
+            old_value = getattr(user, field)
+            new_value = data[field]
+            if old_value != new_value:  
+                setattr(user, field, new_value)
+                updated_fields.append(f"{field.replace('_', ' ')} updated successfully")
 
     if "employment" in data:
-        emp = user.employment[0] if user.employment else EmploymentInfo(user_id=user.id)
-        emp.company_name = data["employment"].get("company_name", emp.company_name)
-        emp.designation = data["employment"].get("designation", emp.designation)
-        emp.is_current = data["employment"].get("is_current", emp.is_current)
-        db.session.add(emp)
+        emp = EmploymentInfo.query.filter_by(user_id=user.id).first()
+        if not emp:
+            emp = EmploymentInfo(user_id=user.id)
+            db.session.add(emp)
 
+        for field in ["company_name", "designation", "is_current"]:
+            if field in data["employment"]:
+                old_value = getattr(emp, field)
+                new_value = data["employment"][field]
+                if old_value != new_value:
+                    setattr(emp, field, new_value)
+                    updated_fields.append(f"{field.replace('_', ' ')} updated successfully")
 
     if "bank" in data:
-        bank = user.bank[0] if user.bank else UserBankInfo(user_id=user.id)
-        bank.bank_name = data["bank"].get("bank_name", bank.bank_name)
-        bank.account_number = data["bank"].get("account_number", bank.account_number)
-        bank.ifsc = data["bank"].get("ifsc", bank.ifsc)
-        bank.account_type = data["bank"].get("account_type", bank.account_type)
-        db.session.add(bank)
+        bank = UserBankInfo.query.filter_by(user_id=user.id).first()
+        if not bank:
+            bank = UserBankInfo(user_id=user.id)
+            db.session.add(bank)
+
+        for field in ["bank_name", "account_number", "ifsc", "account_type"]:
+            if field in data["bank"]:
+                old_value = getattr(bank, field)
+                new_value = data["bank"][field]
+                if old_value != new_value:
+                    setattr(bank, field, new_value)
+                    updated_fields.append(f"{field.replace('_', ' ')} updated successfully")
 
     db.session.commit()
-    return jsonify({"message": "user updated successfully"})
+
+    if not updated_fields:
+        return jsonify({"message": "No changes detected"}), 200
+
+    return jsonify({
+        "message": f" User {user.id} updated successfully",
+        "updated_fields": updated_fields
+    }), 200
+
 
 
 # deleting user
@@ -185,3 +213,23 @@ def add_bank(user_id):
     db.session.add(bank)
     db.session.commit()
     return jsonify({"message": "bank record added", "bank_id": bank.id}), 201
+
+
+@app.route("/users/<int:user_id>/bank/<int:bank_id>", methods=["DELETE"])
+
+def delete_bank(user_id,bank_id):
+    user= User.query.get(user.id)
+    if not user:
+        return jsonify ({"error": f"user {user_id} is not found"}),404
+    bank = UserBankInfo.query.filter_by(id=bank_id,user_id=user_id).first(),404
+    if not bank:
+        return jsonify ({"error":f"bank is {bank_id} not found for {user_id}user "}),404
+    
+    db.session.delete(bank)
+    db.session.commit()
+
+    return jsonify ({
+        "message": f"{bank_id} bank account deleted successfully for {user_id}"
+    }),200
+
+
